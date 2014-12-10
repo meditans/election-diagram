@@ -18,3 +18,10 @@ I seggi andrebbero nel settore circolare di raggio R e 2R
 Nel Cerchio di Raggio R/2 io metterei il monogramma della Camera
 In alto un titolo (facoltativo)
 E in filigrana il nome del sito in cui si pubblica l'immagine; firmare le proprie cose non fa mai male...
+
+Allora per fare il Riksdag i parametri sono:
+10 archi,
+Il primo dista dall'origine 1
+I vari archi distano tra loro 1/9, quindi l'ultimo è a 2
+Il raggio dei seggi è 2/45
+I seggi per i vari archi sono: {23, 26, 28, 31, 34, 36, 39, 41, 44, 47}
