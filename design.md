@@ -19,30 +19,50 @@ Nel Cerchio di Raggio R/2 io metterei il monogramma della Camera
 In alto un titolo (facoltativo)
 E in filigrana il nome del sito in cui si pubblica l'immagine; firmare le proprie cose non fa mai male...
 
-Allora per fare il Riksdag i parametri sono:
-10 archi,
-Il primo dista dall'origine 1
-I vari archi distano tra loro 1/9, quindi l'ultimo è a 2
-Il raggio dei seggi è 2/45
-I seggi per i vari archi sono: {23, 26, 28, 31, 34, 36, 39, 41, 44, 47}
 
-Algoritmo per determinare il tutto: (scritto in Mathematica, ma dovresti importarlo easy)
+Algoritmo per determinare il tutto:
 -- Dati iniziali
-archi = 13;
-seggi = 630;
+nArchi = 13
+nPalline = 630
+partiti = [(200, Red), (200, Yellow), (130, Blue), (100, Green)]
+
 -- Raggi delle circonferenze
-raggiSemiCirc = 1 + Range[0, archi - 1]/(archi - 1);
--- Determino il vero divisore D'Hondt (http://en.wikipedia.org/wiki/D'Hondt_method#Example)
--- Determino tutti i numeri del tipo raggi/nSeggi con raggi in raggiSemiCirc e nSeggi in {1 .. 2 seggi/archi}
--- Riduco la matrice ad una lista (Flatten) e ordino in maniera decrescente
--- Prendo il seggi-esimo termine
-div = Sort[Flatten@Map[raggiSemiCirc/# &, Range[2 seggi/archi]], Greater][[seggi]];
--- Calcolo quanti seggi vanno per arco, parte intera di raggio/div; controllo che torni con il totale
-seggiPerArco = Floor[raggiSemiCirc/div]
-seggi == Total[seggiPerArco]
--- Determino la distanza euclidea (in R^2) tra i vari centri per ogni circonferenza
-distPerArco = 2 raggiSemiCirc Sin[\[Pi]/(seggiPerArco - 1)/2];
+raggiSemiCirc = [1, 1/(nArchi-1) .. 2]
+listaInversi = 1 / [1 .. 2 nPalline/nArchi]
+
+-- Funzioni utili -- Non so come scriverle
+Cumula :: [Palline]->[Palline]
+Decumula :: [Palline]->[Palline]
+Decumulare lista (l'inversa)
+-- Esempio
+Cumula . Map first $ partiti = [200,400,530,630]
+
+-- Metodo d'Hondt (equivalente a Hagenbach-Bischoff)
+matriceCoeff :: [[Floor]]
+matriceCoeff = raggiSemiCirc X listaInversi
+-- Trasfromo la matrice in lista, e ordino in decrescente
+listaCoeff :: [Floor]
+listaCoeff = Sort Union matriceCoeff
+-- Cerca il coefficiente per ogni partito
+coeffHBPartiti :: [Floor]
+coeffHBPartiti = Map (\a -> listaCoeff(a)) pallineCumulate
+-- Calcola le palline cumulate per ogni partito per ogni arco
+listaPallineArcoCum :: [(Raggio,[Palline])]
+listaPallineArcoCum = Map (\a -> (a, Floor a/coeffHBPartiti)) raggiSemiCirc 
+-- Decumula le palline
+listaPallineArcoCum :: [(Raggio,[Palline])]
+listaPallineArco = Map (\(a,b) -> (a,Decumula b)) listaPallineArcoCum 
+
+-- Abbiamo una lista ad esempio di [(1,[20,20,13,10])..] dobbiamo passare a quella dei colori con 20 Rossi, 20 Gialli, 13 Blue e 10 Verdi
+
+-- Estrae il numero di palline complessive da un arco
+pallinePerArco :: [(Raggio,[Palline])] -> [(Raggio,Palline)]
+pallinePerArco [(_,lsPalline)] = [(_, last lsPalline)]
+
+-- Estrae la distanza tra due palline dello stesso arco
+distPerArco :: [(Raggio,Palline)]->[Floor]
+distPerArco [r,p] = [2 r Sin (Pi/(p - 1)/2)];
 -- Determino la distanza sui due Raggi principali
-distRadiale = 1/(archi-1)
--- Determino i raggi dei seggi, sugli archi tra due seggi ci deve essere una distanza radiale mentre sui Raggi principali almeno 0.01
-raggio = Min[distPerArco/3, distRadiale/2 - 0.01]
+distRadiale = 1/(nArchi-1)
+-- Determino i raggi delle palline, sugli archi tra due pallide ci deve essere una distanza radiale mentre sui Raggi principali almeno 0.01
+raggio = Min[(distPerArco . pallinePerArco $ listaPallineArcoCum)/3, distRadiale/2 - 0.01]
