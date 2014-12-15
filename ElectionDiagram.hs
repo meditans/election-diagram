@@ -34,18 +34,12 @@ data Colore = Red | Yellow | Blue | Green
 nArchi :: Rows
 nArchi = 13
 
-nPalline :: Seats
-nPalline = 630
-           
 partiti :: [(Seats,Colore)] 
 partiti = [(200, Red), (200, Yellow), (130, Blue), (100, Green)]
 
 -- Raggi delle circonferenze
-radii :: [Double]
-radii = [1, 1+1/(fromIntegral nArchi-1) .. 2]
-
-inverses :: [Double]
-inverses = map (\a -> 1 / fromIntegral a) [1 .. 2 * nPalline `div` nArchi]
+radii :: Rows -> [Double]
+radii r = [1, 1+1/(fromIntegral r-1) .. 2]
 
 -- Funzioni utili -- Non so come scriverle
 cumula :: [Seats]->[Seats]
@@ -58,21 +52,25 @@ decumula xs = head xs : zipWith (-) (tail xs) xs
 -- Esempio
 --Cumula . Map first $ partiti = [200,400,530,630]
 
-pallineCumulate = cumula . map fst $ partiti
+pallineCumulate :: [(Seats,Colore)] -> [Seats]
+pallineCumulate p = cumula . map fst $ p
 
 -- Metodo d'Hondt (equivalente a Hagenbach-Bischoff)
--- Trasfromo la matrice in lista, e ordino in decrescente
-listaCoeff :: [Double]
-listaCoeff = reverse . sort $ [i*j | i <- radii, j <- inverses]
+-- Calcolo la lista di tutti i coefficienti per la distribuzione
+listaCoeff :: Rows -> Seats -> [Double]
+listaCoeff r s = reverse . sort $ [i/j | i <- (radii r), j <- [1 .. 2 * s `div` r]]
+
 -- Cerca il coefficiente per ogni partito
-hbCoefficients :: [Double]
-hbCoefficients = map (\a -> listaCoeff!!(a-1)) pallineCumulate
+hbCoefficients :: Rows -> [Seats] -> [Double]
+hbCoefficients r xs = map (\a -> (listaCoeff r (last xs))!!(a-1)) xs
+
 -- Calcola le palline cumulate per ogni partito per ogni arco
-listaPallineArcoCum :: [(Double,[Seats])]
-listaPallineArcoCum = map (\a -> (a, map (floor . (a/)) hbCoefficients)) radii 
+listaPallineArcoCum :: Rows -> [Seats] -> [(Double,[Seats])]
+listaPallineArcoCum r xs = map (\a -> (a, map (floor . (a/)) (hbCoefficients r xs))) (radii r)
+
 -- Decumula le palline
-listaPallineArco :: [(Double,[Seats])]
-listaPallineArco = map (\(a,b) -> (a,decumula b)) listaPallineArcoCum 
+listaPallineArco :: Rows -> [Seats] -> [(Double,[Seats])]
+listaPallineArco r xs = map (\(a,b) -> (a,decumula b)) (listaPallineArcoCum r xs)
 
 -- Abbiamo una lista ad esempio di [(1,[20,20,13,10])..] dobbiamo passare a quella dei colori con 20 Rossi, 20 Gialli, 13 Blue e 10 Verdi
 
@@ -81,9 +79,13 @@ pallinePerArco :: [(Double,[Seats])] -> [(Double,Seats)]
 pallinePerArco = map $ \(a,ls) -> (a, last ls)
 
 -- Estrae la distanza tra due palline dello stesso arco
-distPerArco :: [(Double,Seats)]->[Double]
+distPerArco :: [(Double,Seats)] -> [Double]
 distPerArco = map (\(r,p) -> 2*r*sin (pi/(fromIntegral p - 1)/2))
+
 -- Determino la distanza sui due Raggi principali
-distRadiale = 1/(fromIntegral nArchi-1)
+distRadiale :: Rows -> Double
+distRadiale r = 1/(fromIntegral r-1)
+
 -- Determino i raggi delle palline, sugli archi tra due pallide ci deve essere una distanza radiale mentre sui Raggi principali almeno 0.01
-raggio = minimum $ (map (/3) . distPerArco . pallinePerArco $ listaPallineArcoCum) ++ [distRadiale/2 - 0.01]
+radius :: Rows -> [Seats] -> Double
+radius = minimum $ (map (/3) . distPerArco . pallinePerArco $ (listaPallineArcoCum r xs)) ++ [distRadiale r/2 - 0.01]
