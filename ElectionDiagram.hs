@@ -45,7 +45,7 @@ radii :: [Double]
 radii = [1, 1+1/(fromIntegral nArchi-1) .. 2]
 
 inverses :: [Double]
-inverses = map (\a -> 1 / fromIntegral a) [1 .. nPalline `div` nArchi]
+inverses = map (\a -> 1 / fromIntegral a) [1 .. 2 * nPalline `div` nArchi]
 
 -- Funzioni utili -- Non so come scriverle
 cumula :: [Seats]->[Seats]
